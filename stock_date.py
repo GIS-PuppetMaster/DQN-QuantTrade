@@ -9,7 +9,7 @@ class StockDate:
     def __init__(self):
         # np[str]
         self.date_list = np.array(
-            pd.read_csv(glo.stock_code.replace(".", "_") + ".csv")['Unnamed: 0'])
+            pd.read_csv('Data/'+glo.stock_code.replace(".", "_") + ".csv")['Unnamed: 0'])
         # datetime
         self.date = datetime.strptime(self.date_list[0], "%Y-%m-%d %H:%M:%S")
         self.index = 0

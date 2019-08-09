@@ -1,7 +1,4 @@
 from time import *
-import datetime
-from keras.engine.saving import load_model
-from jqdatasdk import *
 import glo
 import os
 from keras.optimizers import *
@@ -13,7 +10,8 @@ from CriticNetwork import CriticNetwork
 import math
 import json
 from stock_date import *
-import matplotlib.pyplot as plt
+import plotly as py
+import plotly.graph_objs as go
 import sys
 
 # f = open('trade.log', 'a')
@@ -196,14 +194,14 @@ def run_model(train_model):
         target_critic_net.load_weights('target_critic_weights.h5')
 
     # 如果已经有经验则读取
-    if os.path.exists("experience_pool.json"):
-        with open("experience_pool.json", "r", encoding="UTF-8") as f:
+    if os.path.exists("Data/experience_pool.json"):
+        with open("Data/experience_pool.json", "r", encoding="UTF-8") as f:
             s = f.read()
             experience_pool = json.loads(s, object_hook=Experience.object_hook)
     # 否则观察环境获取经验
     else:
         observe_env()
-        with open("experience_pool.json", "w", encoding='UTF-8') as f:
+        with open("Data/experience_pool.json", "w", encoding='UTF-8') as f:
             json.dump(experience_pool, f, default=lambda obj: obj.__dict__)
 
     for episode in range(train_times):
@@ -214,6 +212,8 @@ def run_model(train_model):
         quant_list = []
         random_list = []
         reference_list = []
+        stock_price_list = []
+        candle_list = []
         # 初始化状态
         t = random.randint(int(glo.frequency[:-1]),
                            date_manager.date_list.size - 1 - train_step * int(glo.frequency[:-1]))
@@ -237,6 +237,8 @@ def run_model(train_model):
                 epsilon = epsilon * math.log(train_step - t, train_step) + 0.00000001
             # 假设本轮时间极短，股价不变，本轮内所有股价都从这里获取
             glo.price = Env.get_stock_price(date_manager.get_date())
+            stock_price_list.append(glo.price)
+            candle_list.append(Env.get_single_stock_state(date=date_manager.get_date()))
             time_list.append(str(date_manager.get_date()))
             print("第" + str(episode + 1) + "轮训练")
             print("     第" + str(t + 1) + "步训练")
@@ -298,22 +300,24 @@ def run_model(train_model):
                 episode_loss_list.append(step_loss)
                 # 每轮结束时画出训练结果图
                 if t == train_step - 1:
-                    plt.plot([i for i in range(len(episode_loss_list))], episode_loss_list)
-                    plt.savefig("episode_loss.png", dpi=300)
-                    plt.clf()
-                    plt.plot([i for i in range(len(episode_reward_list))], episode_reward_list)
-                    plt.savefig("episode_reward.png", dpi=300)
-                    plt.clf()
+                    py.offline.plot({
+                        "data": [go.Scatter(x=[i for i in range(len(episode_loss_list))], y=episode_loss_list)],
+                        "layout": go.Layout(title="episode_loss", xaxis={'title': '步数'}, yaxis={'title': 'loss'})
+                    }, auto_open=False, filename='episode_loss.html')
+                    py.offline.plot({
+                        "data": [go.Scatter(x=[i for i in range(len(episode_reward_list))], y=episode_reward_list)],
+                        "layout": go.Layout(title="episode_reward", xaxis={'title': '步数'}, yaxis={'title': 'reward'})
+                    }, auto_open=False, filename='episode_reward.html')
 
             if train_model == "run" or train_model == "both":
                 # 画出回测图
                 # 现在持有的股票价值+现在的资金
-                profit_list.append(glo.get_stock_total_value(glo.price) + glo.money)
+                profit_list.append((glo.get_stock_total_value(glo.price) + glo.money) / (glo.ori_value + glo.ori_money))
                 # 最开始持有的半仓股票的价值+最开始持有的资金
-                reference_list.append(glo.stock_value[0][1] * glo.price * 100 + glo.ori_money)
+                reference_list.append(
+                    (glo.stock_value[0][1] * glo.price * 100 + glo.ori_money) / (glo.ori_value + glo.ori_money))
                 temp = glo.stock_value[len(glo.stock_value) - 1]
                 quant_list.append(temp[1])
-                x_label = np.arange(len(time_list))
                 # 随机操作对照组
                 random_action = random.uniform(-1, 1)
                 random_quant = 0
@@ -324,28 +328,71 @@ def run_model(train_model):
                 random_amount += random_quant
                 random_stock.append([glo.price, random_quant])
                 random_money -= glo.price * 100 * random_quant
-                random_list.append(glo.price * 100 * random_amount + random_money)
+                random_list.append((glo.price * 100 * random_amount + random_money) / (glo.ori_money + glo.ori_value))
                 f = train_step / 4
                 # 训练+绘制回测图模式下调低绘制频率
-                path1 = "sim.png"
-                path2 = "trade.png"
+                path = "sim.html"
                 if train_model == "both":
                     f = train_step / 2
-                    path1 = "sim_res/sim_" + str(episode) + ".png"
-                    path2 = "sim_res/trade_" + str(episode) + ".png"
+                    path = "sim_res/sim_" + str(episode + 1) + ".html"
                 if (t + 1) % f == 0 and t != 0:
-                    plt.xticks(x_label, np.array(time_list), rotation=90, fontsize=5)
-                    plt.plot(x_label, random_list, color='green')
-                    plt.plot(x_label, profit_list, color='red')
-                    plt.plot(x_label, reference_list, color='blue')
-                    # plt.show()
-                    plt.savefig(path1, dpi=300)
-                    plt.clf()
-                    plt.xticks(x_label, np.array(time_list), rotation=90, fontsize=5)
-                    plt.bar(x_label, quant_list)
-                    # plt.show()
-                    plt.savefig(path2, dpi=300)
-                    plt.clf()
+                    random_scatter = go.Scatter(x=time_list,
+                                                y=random_list,
+                                                name='Random',
+                                                line=dict(color='green'),
+                                                mode='lines')
+                    profit_scatter = go.Scatter(x=time_list,
+                                                y=profit_list,
+                                                name='DDPG_Agent',
+                                                line=dict(color='red'),
+                                                mode='lines')
+                    reference_scatter = go.Scatter(x=time_list,
+                                                   y=reference_list,
+                                                   name='Base',
+                                                   line=dict(color='blue'),
+                                                   mode='lines')
+                    price_scatter = go.Scatter(x=time_list,
+                                               y=stock_price_list,
+                                               name='price',
+                                               line=dict(color='orange'),
+                                               mode='lines',
+                                               xaxis='x',
+                                               yaxis='y2',
+                                               opacity=0.6)
+                    trade_bar = go.Bar(x=time_list,
+                                       y=quant_list,
+                                       name='quant',
+                                       marker_color='#000099',
+                                       xaxis='x',
+                                       yaxis='y3',
+                                       opacity=0.6)
+                    cl = np.array(candle_list)
+                    price_candle = go.Candlestick(x=time_list,
+                                                  xaxis='x',
+                                                  yaxis='y2',
+                                                  name='价格',
+                                                  open=cl[:, 0],
+                                                  close=cl[:, 1],
+                                                  high=cl[:, 2],
+                                                  low=cl[:, 3],
+                                                  increasing=dict(line=dict(color='#FF2131')),
+                                                  decreasing=dict(line=dict(color='#00CCFF')))
+                    py.offline.plot({
+                        "data": [profit_scatter, reference_scatter, random_scatter, price_scatter, trade_bar,
+                                 price_candle],
+                        "layout": go.Layout(title="回测结果",
+                                            xaxis=dict(title='日期', type="category", showgrid=False, zeroline=False),
+                                            yaxis=dict(title='收益率', showgrid=False, zeroline=False),
+                                            yaxis2=dict(title='股价', overlaying='y', side='right', showgrid=False,
+                                                        zeroline=False),
+                                            yaxis3=dict(title='交易量', overlaying='y', side='right',
+                                                        titlefont={'color': '#000099'}, tickfont={'color': '#000099'},
+                                                        showgrid=False, position=0.97, zeroline=False, anchor='free'),
+                                            paper_bgcolor='#FFFFFF',
+                                            plot_bgcolor='#FFFFFF',
+                                            )
+                    }, auto_open=False, filename=path)
+
             step_reward += reward[0][0]
             current_stock_state = next_stock_state
             current_agent_state = next_agent_state
@@ -373,7 +420,7 @@ def save_weights():
 
 def save_experience_pool():
     print("经验存储中......请勿退出!!!")
-    with open("experience_pool.json", "w", encoding='UTF-8') as f:
+    with open("Data/experience_pool.json", "w", encoding='UTF-8') as f:
         json.dump(experience_pool, f, default=lambda obj: obj.__dict__)
     print("经验存储完成")
 

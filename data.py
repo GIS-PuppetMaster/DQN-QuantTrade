@@ -11,5 +11,5 @@ raw = get_price(glo.stock_code, start_date=datetime(2007, 1, 1, 0, 0, 0).strftim
                 end_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), frequency="1m", skip_paused=True)
 raw.to_csv(glo.stock_code.replace(".", "_") + ".csv")
 j = np.array(raw)[..., [0, 1, 2, 3]].transpose().tolist()
-with open(glo.stock_code.replace(".", "_") + ".json", "w") as f:
+with open('Data/'+glo.stock_code.replace(".", "_") + ".json", "w") as f:
     json.dump(j, f)

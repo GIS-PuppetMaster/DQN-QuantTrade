@@ -25,7 +25,7 @@ def __init__():
 
     gdate = StockDate()
     glo.__init__()
-    data = pd.read_csv(glo.stock_code.replace(".", "_") + ".csv", index_col='Unnamed: 0')
+    data = pd.read_csv('Data/' + glo.stock_code.replace(".", "_") + ".csv", index_col='Unnamed: 0')
     glo.price = get_stock_price(gdate.get_date())
 
 
@@ -68,10 +68,14 @@ def get_stock_price(date):
                               end_date=date.strftime("%Y-%m-%d %H:%M:%S"),
                               skip_paused=True)).tolist()[0][1]
     """
+    return get_single_stock_state(date)[1]
+
+
+def get_single_stock_state(date):
     global data
     global gdate
     gdate.set_date(date)
-    return np.array(data.loc[str(gdate.get_date())]).tolist()[1]
+    return np.array(data.loc[str(gdate.get_date())]).tolist()
 
 
 def trade(stock, action, date):
