@@ -214,6 +214,7 @@ def run_model(train_model):
         reference_list = []
         stock_price_list = []
         candle_list = []
+        amount_list = []
         # 初始化状态
         t = random.randint(int(glo.frequency[:-1]),
                            date_manager.date_list.size - 1 - train_step * int(glo.frequency[:-1]))
@@ -265,6 +266,7 @@ def run_model(train_model):
             print("stock_value:" + str(glo.get_stock_total_value(glo.price)))
             print("stock:" + str(glo.stock_value))
             print("stock_amount:" + str(glo.get_stock_amount()))
+            amount_list.append(glo.get_stock_amount())
             # 生成经验前预处理
             next_stock_state = np.array(next_stock_state).reshape(1, stock_state_size, glo.count).tolist()
             next_agent_state = np.array(next_agent_state).reshape(1, agent_state_size).tolist()
@@ -312,10 +314,13 @@ def run_model(train_model):
             if train_model == "run" or train_model == "both":
                 # 画出回测图
                 # 现在持有的股票价值+现在的资金
-                profit_list.append((glo.get_stock_total_value(glo.price) + glo.money) / (glo.ori_value + glo.ori_money))
+                profit_list.append(
+                    (glo.get_stock_total_value(glo.price) + glo.money - glo.ori_money - glo.ori_value) / (
+                            glo.ori_value + glo.ori_money))
                 # 最开始持有的半仓股票的价值+最开始持有的资金
                 reference_list.append(
-                    (glo.stock_value[0][1] * glo.price * 100 + glo.ori_money) / (glo.ori_value + glo.ori_money))
+                    (glo.stock_value[0][1] * glo.price * 100 + glo.ori_money - glo.ori_money - glo.ori_value) / (
+                            glo.ori_value + glo.ori_money))
                 temp = glo.stock_value[len(glo.stock_value) - 1]
                 quant_list.append(temp[1])
                 # 随机操作对照组
@@ -328,7 +333,8 @@ def run_model(train_model):
                 random_amount += random_quant
                 random_stock.append([glo.price, random_quant])
                 random_money -= glo.price * 100 * random_quant
-                random_list.append((glo.price * 100 * random_amount + random_money) / (glo.ori_money + glo.ori_value))
+                random_list.append((glo.price * 100 * random_amount + random_money - glo.ori_money - glo.ori_value) / (
+                        glo.ori_money + glo.ori_value))
                 f = train_step / 4
                 # 训练+绘制回测图模式下调低绘制频率
                 path = "sim.html"
@@ -338,34 +344,45 @@ def run_model(train_model):
                 if (t + 1) % f == 0 and t != 0:
                     random_scatter = go.Scatter(x=time_list,
                                                 y=random_list,
-                                                name='Random',
+                                                name='随机策略',
                                                 line=dict(color='green'),
                                                 mode='lines')
                     profit_scatter = go.Scatter(x=time_list,
                                                 y=profit_list,
-                                                name='DDPG_Agent',
+                                                name='DDPG',
                                                 line=dict(color='red'),
                                                 mode='lines')
                     reference_scatter = go.Scatter(x=time_list,
                                                    y=reference_list,
-                                                   name='Base',
+                                                   name='基准',
                                                    line=dict(color='blue'),
                                                    mode='lines')
                     price_scatter = go.Scatter(x=time_list,
                                                y=stock_price_list,
-                                               name='price',
+                                               name='股价',
                                                line=dict(color='orange'),
                                                mode='lines',
                                                xaxis='x',
                                                yaxis='y2',
-                                               opacity=0.6)
+                                               opacity=0.9)
                     trade_bar = go.Bar(x=time_list,
                                        y=quant_list,
-                                       name='quant',
+                                       name='交易量（手）',
                                        marker_color='#000099',
                                        xaxis='x',
                                        yaxis='y3',
-                                       opacity=0.6)
+                                       opacity=0.9)
+                    amount_scatter = go.Scatter(x=time_list,
+                                                y=amount_list,
+                                                name='持股数量（手）',
+                                                line=dict(color='rgba(0,204,255,0.6)'),
+                                                mode='lines',
+                                                fill='tozeroy',
+                                                fillcolor='rgba(0,204,255,0.3)',
+                                                xaxis='x',
+                                                yaxis='y4',
+                                                opacity=0.6)
+                    """
                     cl = np.array(candle_list)
                     price_candle = go.Candlestick(x=time_list,
                                                   xaxis='x',
@@ -377,17 +394,23 @@ def run_model(train_model):
                                                   low=cl[:, 3],
                                                   increasing=dict(line=dict(color='#FF2131')),
                                                   decreasing=dict(line=dict(color='#00CCFF')))
+                    """
                     py.offline.plot({
                         "data": [profit_scatter, reference_scatter, random_scatter, price_scatter, trade_bar,
-                                 price_candle],
+                                 amount_scatter],
                         "layout": go.Layout(title="回测结果",
                                             xaxis=dict(title='日期', type="category", showgrid=False, zeroline=False),
                                             yaxis=dict(title='收益率', showgrid=False, zeroline=False),
-                                            yaxis2=dict(title='股价', overlaying='y', side='right', showgrid=False,
+                                            yaxis2=dict(title='股价', overlaying='y', side='right',
+                                                        titlefont={'color': 'orange'}, tickfont={'color': 'orange'},
+                                                        showgrid=False,
                                                         zeroline=False),
                                             yaxis3=dict(title='交易量', overlaying='y', side='right',
                                                         titlefont={'color': '#000099'}, tickfont={'color': '#000099'},
                                                         showgrid=False, position=0.97, zeroline=False, anchor='free'),
+                                            yaxis4=dict(title='持股量', overlaying='y', side='left',
+                                                        titlefont={'color': '#00ccff'}, tickfont={'color': '#00ccff'},
+                                                        showgrid=False, position=0.03, zeroline=False, anchor='free'),
                                             paper_bgcolor='#FFFFFF',
                                             plot_bgcolor='#FFFFFF',
                                             )
