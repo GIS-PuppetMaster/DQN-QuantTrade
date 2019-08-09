@@ -1,18 +1,16 @@
 阶段1a：
     单一股票
-    state：get_price中的6个参数+当前持有资金+当前持有的股票的买入价格+买入量
-    全连接神经网
-    DQN
+    state：get_price中的6个参数+当前持有资金+当前持有的股票的总价格
+    卷积全连接神经网
+    DDQN
     回测模拟
+阶段1ab:
+    epsilon衰减
 阶段1b：
     调整state和其他参数
 阶段2：
     LSTM神经网
-    DQN
-阶段3a：
-    全连接神经网
     DDQN
-阶段3b：
-    LSTM神经网
+阶段3：
+    混合神经网（LSTM+全连接）
     DDQN
-
