@@ -178,7 +178,7 @@ def run_model(train_model):
     global epsilon
     global experience_pool
     global date_manager
-    actor = ActorNetwork(sess, stock_state_size, agent_state_size, action_size, tau, 0.0001)
+    actor = ActorNetwork(sess, stock_state_size, agent_state_size, action_size, tau, 0.00001)
     critic = CriticNetwork(sess, stock_state_size, agent_state_size, action_size, tau, 0.000001)
     main_actor_net = actor.model
     target_actor_net = actor.target_model
@@ -336,11 +336,11 @@ def run_model(train_model):
                 random_money -= glo.price * 100 * random_quant
                 random_list.append((glo.price * 100 * random_amount + random_money - glo.ori_money - glo.ori_value) / (
                         glo.ori_money + glo.ori_value))
-                f = train_step / 4
+                f = train_step / 10
                 # 训练+绘制回测图模式下调低绘制频率
                 path = "sim.html"
                 if train_model == "both":
-                    f = train_step / 2
+                    f = train_step / 5
                     path = "sim_res/sim_" + str(episode + 1) + ".html"
                 if (t + 1) % f == 0 and t != 0:
                     random_scatter = go.Scatter(x=time_list,
@@ -425,12 +425,21 @@ def run_model(train_model):
             print(
                 "此时刻全部卖出可净收入：" + str(glo.get_stock_total_value(glo.price) + glo.money - glo.ori_money - glo.ori_value))
             print("----------------------------")
-            if t % 5000 == 0 and t != 0:
+            if t % 5000 == 0 and t != 0 and (train_model == "train" or train_model == "both"):
                 save_weights()
         print("-------------------------------------------------------------------------------------------")
         print("total_reward:" + str(step_reward))
-        save_weights()
-        if (episode + 1) % 10 == 0:
+        if train_model == "train" or train_model == "both":
+            main_actor_net.save('sim_res_weights/main_actor_net_' + str(episode + 1) + '.h5', overwrite=True,
+                                include_optimizer=True)
+            target_actor_net.save('sim_res_weights/target_actor_net_' + str(episode + 1) + '.h5', overwrite=True,
+                                  include_optimizer=True)
+            main_critic_net.save('sim_res_weights/main_critic_net_' + str(episode + 1) + '.h5', overwrite=True,
+                                 include_optimizer=True)
+            target_critic_net.save('sim_res_weights/target_critic_net_' + str(episode + 1) + '.h5', overwrite=True,
+                                   include_optimizer=True)
+            save_weights()
+        if (episode + 1) % 10 == 0 and (train_model == "train" or train_model == "both"):
             save_experience_pool()
 
 
