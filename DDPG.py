@@ -26,7 +26,7 @@ sess = tf.Session(config=config)
 K.set_session(sess)
 
 # DDPG超参数
-train_times = 100
+train_times = 20
 train_step = 10000
 gamma = 0.99
 mini_batch_size = 64
