@@ -178,7 +178,7 @@ def run_model(train_model):
     global epsilon
     global experience_pool
     global date_manager
-    actor = ActorNetwork(sess, stock_state_size, agent_state_size, action_size, tau, 0.00001)
+    actor = ActorNetwork(sess, stock_state_size, agent_state_size, action_size, tau, 0.0001)
     critic = CriticNetwork(sess, stock_state_size, agent_state_size, action_size, tau, 0.000001)
     main_actor_net = actor.model
     target_actor_net = actor.target_model
@@ -250,6 +250,7 @@ def run_model(train_model):
             print("预测的action:" + str(action))
             print("a_noise:" + str(a_noise))
             action[0] = action[0] + a_noise
+            action[1] = action[1] + a_noise
             # 买入过多
             if action[0] > glo.money / glo.price or action[0] > 1:
                 action[0] = 1
