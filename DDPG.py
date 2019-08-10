@@ -26,7 +26,7 @@ sess = tf.Session(config=config)
 K.set_session(sess)
 
 # DDPG超参数
-train_times = 100
+train_times = 20
 train_step = 10000
 gamma = 0.99
 mini_batch_size = 64
@@ -189,15 +189,23 @@ def run_model(train_model):
     episode_loss_list = []
     if os.path.exists('main_actor_weights.h5'):
         main_actor_net.load_weights('main_actor_weights.h5')
+        print("已载入权重main_actor_weights.h5")
+    if os.path.exists('main_critic_weights.h5'):
         main_critic_net.load_weights('main_critic_weights.h5')
+        print("已载入权重main_critic_weights.h5")
+    if os.path.exists('target_actor_weights.h5'):
         target_actor_net.load_weights('target_actor_weights.h5')
+        print("已载入权重target_actor_weights.h5")
+    if os.path.exists('target_critic_weights.h5'):
         target_critic_net.load_weights('target_critic_weights.h5')
+        print("已载入权重target_critic_weights.h5")
 
     # 如果已经有经验则读取
     if os.path.exists("Data/experience_pool.json"):
         with open("Data/experience_pool.json", "r", encoding="UTF-8") as f:
             s = f.read()
             experience_pool = json.loads(s, object_hook=Experience.object_hook)
+        print("已载入经验池")
     # 否则观察环境获取经验
     else:
         observe_env()
@@ -235,7 +243,7 @@ def run_model(train_model):
             if train_model == "train" or train_model == "both":
                 a_noise = random.uniform(-epsilon, epsilon)
                 # 预防除以0或epsilon=0的情况
-                epsilon = epsilon * math.log(train_step - t, train_step) + 0.00000001
+                epsilon = epsilon * math.log(train_times - episode*t, train_times) + 0.00000001
             # 假设本轮时间极短，股价不变，本轮内所有股价都从这里获取
             glo.price = Env.get_stock_price(date_manager.get_date())
             stock_price_list.append(glo.price)
@@ -340,7 +348,7 @@ def run_model(train_model):
                 # 训练+绘制回测图模式下调低绘制频率
                 path = "sim.html"
                 if train_model == "both":
-                    f = train_step / 5
+                    f = train_step / 10
                     path = "sim_res/sim_" + str(episode + 1) + ".html"
                 if (t + 1) % f == 0 and t != 0:
                     random_scatter = go.Scatter(x=time_list,
@@ -399,7 +407,7 @@ def run_model(train_model):
                     py.offline.plot({
                         "data": [profit_scatter, reference_scatter, random_scatter, price_scatter, trade_bar,
                                  amount_scatter],
-                        "layout": go.Layout(title="回测结果",
+                        "layout": go.Layout(title=glo.stock_code + "回测结果",
                                             xaxis=dict(title='日期', type="category", showgrid=False, zeroline=False),
                                             yaxis=dict(title='收益率', showgrid=False, zeroline=False),
                                             yaxis2=dict(title='股价', overlaying='y', side='right',
@@ -430,24 +438,24 @@ def run_model(train_model):
         print("-------------------------------------------------------------------------------------------")
         print("total_reward:" + str(step_reward))
         if train_model == "train" or train_model == "both":
-            main_actor_net.save('sim_res_weights/main_actor_net_' + str(episode + 1) + '.h5', overwrite=True,
-                                include_optimizer=True)
-            target_actor_net.save('sim_res_weights/target_actor_net_' + str(episode + 1) + '.h5', overwrite=True,
-                                  include_optimizer=True)
-            main_critic_net.save('sim_res_weights/main_critic_net_' + str(episode + 1) + '.h5', overwrite=True,
-                                 include_optimizer=True)
-            target_critic_net.save('sim_res_weights/target_critic_net_' + str(episode + 1) + '.h5', overwrite=True,
-                                   include_optimizer=True)
+            main_actor_net.save_weights('sim_res_weights/' + str(episode + 1) + '_main_actor_weights.h5',
+                                        overwrite=True)
+            target_actor_net.save_weights('sim_res_weights/' + str(episode + 1) + '_target_actor_weights.h5',
+                                          overwrite=True)
+            main_critic_net.save_weights('sim_res_weights/' + str(episode + 1) + '_main_critic_weights.h5',
+                                         overwrite=True)
+            target_critic_net.save_weights('sim_res_weights/' + str(episode + 1) + '_target_critic_weights.h5',
+                                           overwrite=True)
             save_weights()
         if (episode + 1) % 10 == 0 and (train_model == "train" or train_model == "both"):
             save_experience_pool()
 
 
 def save_weights():
-    main_actor_net.save('main_actor_net.h5', overwrite=True, include_optimizer=True)
-    target_actor_net.save('target_actor_net.h5', overwrite=True, include_optimizer=True)
-    main_critic_net.save('main_critic_net.h5', overwrite=True, include_optimizer=True)
-    target_critic_net.save('target_critic_net.h5', overwrite=True, include_optimizer=True)
+    main_actor_net.save_weights('main_actor_weights.h5', overwrite=True)
+    target_actor_net.save_weights('target_actor_weights.h5', overwrite=True)
+    main_critic_net.save_weights('main_critic_weights.h5', overwrite=True)
+    target_critic_net.save_weights('target_critic_weights.h5', overwrite=True)
     print("权重存储完成")
 
 
