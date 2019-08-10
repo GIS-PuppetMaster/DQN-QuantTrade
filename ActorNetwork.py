@@ -29,7 +29,7 @@ class ActorNetwork(object):
         self.params_gradients = tf.gradients(self.model.output, self.weights, -self.action_gradients)
         grad = zip(self.params_gradients, self.weights)
         self.global_step = tf.Variable(0, trainable=False)
-        self.learn_rate = tf.train.exponential_decay(LEARNING_RATE, self.global_step, 1000000, 0.01)
+        self.learn_rate = tf.train.exponential_decay(LEARNING_RATE, self.global_step, 20000, 0.9)
         self.optimize = tf.train.AdamOptimizer(self.learn_rate).apply_gradients(grad, global_step=self.global_step)
         self.sess.run(tf.initialize_all_variables())
 

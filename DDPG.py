@@ -399,7 +399,7 @@ def run_model(train_model):
                     py.offline.plot({
                         "data": [profit_scatter, reference_scatter, random_scatter, price_scatter, trade_bar,
                                  amount_scatter],
-                        "layout": go.Layout(title="回测结果",
+                        "layout": go.Layout(title=glo.stock_code+"回测结果",
                                             xaxis=dict(title='日期', type="category", showgrid=False, zeroline=False),
                                             yaxis=dict(title='收益率', showgrid=False, zeroline=False),
                                             yaxis2=dict(title='股价', overlaying='y', side='right',
@@ -430,13 +430,13 @@ def run_model(train_model):
         print("-------------------------------------------------------------------------------------------")
         print("total_reward:" + str(step_reward))
         if train_model == "train" or train_model == "both":
-            main_actor_net.save('sim_res_weights/main_actor_net_' + str(episode + 1) + '.h5', overwrite=True,
+            main_actor_net.save('sim_res_weights/' + str(episode + 1) + '_main_actor_net.h5', overwrite=True,
                                 include_optimizer=True)
-            target_actor_net.save('sim_res_weights/target_actor_net_' + str(episode + 1) + '.h5', overwrite=True,
+            target_actor_net.save('sim_res_weights/' + str(episode + 1) + '_target_actor_net.h5', overwrite=True,
                                   include_optimizer=True)
-            main_critic_net.save('sim_res_weights/main_critic_net_' + str(episode + 1) + '.h5', overwrite=True,
+            main_critic_net.save('sim_res_weights/' + str(episode + 1) + '_main_critic_net.h5', overwrite=True,
                                  include_optimizer=True)
-            target_critic_net.save('sim_res_weights/target_critic_net_' + str(episode + 1) + '.h5', overwrite=True,
+            target_critic_net.save('sim_res_weights/' + str(episode + 1) + '_target_critic_net.h5', overwrite=True,
                                    include_optimizer=True)
             save_weights()
         if (episode + 1) % 10 == 0 and (train_model == "train" or train_model == "both"):
