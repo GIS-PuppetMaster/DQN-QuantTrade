@@ -30,6 +30,12 @@ class StockDate:
         self.index += frequency
         return self.date
 
+    def last_date(self):
+        frequency = int(glo.frequency[:-1])
+        self.date = datetime.strptime(self.date_list[self.index - frequency], "%Y-%m-%d %H:%M:%S")
+        self.index -= frequency
+        return self.date
+
     def next_day(self):
         day = self.date.day
         # 如果日期没有变更则next_date

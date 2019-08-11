@@ -46,7 +46,7 @@ target_critic_net = None
 experience_cursor = 0
 date_manager = StockDate()
 
-quant_init = 50
+quant_init = -1
 
 
 # auth("13074581737", "trustno1")
@@ -232,12 +232,12 @@ def run_model(train_model):
                            date_manager.date_list.size - 1 - train_step * int(glo.frequency[:-1]))
         print("最末起始日期：" + date_manager.date_list[
             date_manager.date_list.size - 1 - train_step * int(glo.frequency[:-1]) * 30])
-        print("本次模拟起始日期：" + str(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S")))
         if train_model == "run":
-            # date_manager.set_date(datetime.strptime('2019-01-14 10:00:00', "%Y-%m-%d %H:%M:%S"))
+            # date_manager.set_date(datetime.strptime('2016-07-14 9:31:00', "%Y-%m-%d %H:%M:%S"))
             date_manager.set_date_with_index(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
         else:
             date_manager.set_date_with_index(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
+        print("本次模拟起始日期：" + str(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S")))
         start_date = date_manager.get_date()
         glo.init_with_oristock(Env.get_stock_price(date_manager.get_date()), quant_init)
 
@@ -268,6 +268,8 @@ def run_model(train_model):
             print("日期:" + str(date_manager.get_date()))
             print("生成action")
             # 此处的action不是真正交易的股数，而是[-1,1]，1为当前持有股数
+            print("stock_state:"+str(current_stock_state))
+            print("agent_state:"+str(current_agent_state))
             action = main_actor_net.predict([current_stock_state, current_agent_state])[0]
             print("预测的action:" + str(action))
             print("a_noise:" + str(a_noise))
@@ -426,7 +428,7 @@ def run_model(train_model):
                     py.offline.plot({
                         "data": [profit_scatter, reference_scatter, random_scatter, price_scatter, trade_bar,
                                  amount_scatter],
-                        "layout": go.Layout(title=glo.stock_code + "回测结果",
+                        "layout": go.Layout(title=glo.stock_code + "回测结果"+"     初始资金："+str(glo.ori_money)+"     初始股票价值"+str(glo.ori_value)+"    总初始本金:"+str(glo.ori_money+glo.ori_value),
                                             xaxis=dict(title='日期', type="category", showgrid=False, zeroline=False),
                                             yaxis=dict(title='收益率', showgrid=False, zeroline=False),
                                             yaxis2=dict(title='股价', overlaying='y', side='right',
@@ -456,7 +458,7 @@ def run_model(train_model):
                 save_weights()
         print("-------------------------------------------------------------------------------------------")
         print("total_reward:" + str(step_reward))
-        save_model()
+        # save_model()
         if train_model == "train" or train_model == "both":
             main_actor_net.save_weights('sim_res_weights/' + str(episode + 1) + '_main_actor_weights.h5',
                                         overwrite=True)

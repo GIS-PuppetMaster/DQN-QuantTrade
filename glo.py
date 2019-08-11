@@ -21,7 +21,7 @@ def __init__():
     global ori_value
     count = 32
     ori_value = 0
-    stock_code = "000517.XSHE"
+    stock_code = "600094.XSHG"
     money = pow(10, 5)
     ori_money = money
     # [[股价,股数]]

@@ -50,16 +50,20 @@ def get_state(date):
     stock_state = []
     for i in range(0, int(glo.frequency[:-1]) * glo.count, int(glo.frequency[:-1])):
         line = np.array(data.loc[str(gdate.get_date())])[[0, 1, 2, 3, 4, 5]].transpose().tolist()
-        gdate.next_date()
+        gdate.last_date()
         stock_state.append(line)
     # stock_state=reshape3D(stock_state)
     # 返回状态前先进行归一化
+    print("raw_stock_state:"+str(stock_state))
     stock_state = scale(stock_state, axis=0)
     agent_state = [glo.money] + [glo.get_stock_total_value(glo.price)] + [
         glo.get_stock_amount()]
     agent_state = np.array(agent_state).reshape(-1, 1).tolist()
+    print("raw_agent_state:"+str(agent_state))
     agent_state = scale(agent_state, axis=0)
     return stock_state, agent_state
+
+
 
 
 def get_stock_price(date):
