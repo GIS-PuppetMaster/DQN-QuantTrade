@@ -251,8 +251,16 @@ def run_model(train_model):
         current_agent_state = np.array(current_agent_state).reshape(1, agent_state_size).tolist()
         for t in range(train_step):
             # 防止越界+最多训练/回测一年
-            if str(date_manager.get_date()) == '2019-08-09 09:31:00' or (
-                    date_manager.get_date() - start_date).days >= 365:
+            if str(date_manager.get_date()) == '2019-08-09 09:31:00' or (date_manager.get_date() - start_date).days >= 365:
+                # 每轮结束时画出训练结果图
+                py.offline.plot({
+                    "data": [go.Scatter(x=[i for i in range(len(episode_loss_list))], y=episode_loss_list)],
+                    "layout": go.Layout(title="episode_loss", xaxis={'title': '步数'}, yaxis={'title': 'loss'})
+                }, auto_open=False, filename='episode_loss.html')
+                py.offline.plot({
+                    "data": [go.Scatter(x=[i for i in range(len(episode_reward_list))], y=episode_reward_list)],
+                    "layout": go.Layout(title="episode_reward", xaxis={'title': '步数'}, yaxis={'title': 'reward'})
+                }, auto_open=False, filename='episode_reward.html')
                 break
             # 设置action噪声，增强对环境的探索能力
             a_noise = 0
@@ -329,16 +337,6 @@ def run_model(train_model):
                 critic.update_target()
                 episode_reward_list.append(step_reward)
                 episode_loss_list.append(step_loss)
-                # 每轮结束时画出训练结果图
-                if t == train_step - 1 or (date_manager.get_date() - start_date).days >= 365:
-                    py.offline.plot({
-                        "data": [go.Scatter(x=[i for i in range(len(episode_loss_list))], y=episode_loss_list)],
-                        "layout": go.Layout(title="episode_loss", xaxis={'title': '步数'}, yaxis={'title': 'loss'})
-                    }, auto_open=False, filename='episode_loss.html')
-                    py.offline.plot({
-                        "data": [go.Scatter(x=[i for i in range(len(episode_reward_list))], y=episode_reward_list)],
-                        "layout": go.Layout(title="episode_reward", xaxis={'title': '步数'}, yaxis={'title': 'reward'})
-                    }, auto_open=False, filename='episode_reward.html')
 
             if train_model == "run" or train_model == "both":
                 if next_date.day != date_manager.get_date().day:
