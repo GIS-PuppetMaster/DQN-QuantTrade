@@ -101,13 +101,13 @@ def observe_env():
         # 每观察train_step轮重置一次环境
         if i % train_step == 0:
             Env.__init__()
-        t = random.randint(int(glo.frequency[:-1]), date.date_list.size - 1 - train_step * int(glo.frequency[:-1]))
+        t = random.randint(int(glo.frequency[:-1]), date.date_list.size - 1 - train_step * int(glo.frequency[:-1]) * 30)
         date.set_date_with_index(datetime.strptime(date.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
         # 获取状态
         obs_stock_state, obs_agent_state = Env.get_state(date.get_date())
         # 随机生成action
         a = [random.uniform(-1, 1), random.uniform(-1, 1)]
-        env_stock_state, env_agent_state, reward = execute_action(a)
+        env_stock_state, env_agent_state, reward, temp_date, temp_index, temp_quant = execute_action(a)
 
         # 处理数据
         obs_stock_state = np.array(obs_stock_state).reshape(1, stock_state_size, glo.count).tolist()
@@ -223,10 +223,18 @@ def run_model(train_model):
         stock_price_list = []
         candle_list = []
         amount_list = []
+
         # 初始化状态
         t = random.randint(int(glo.frequency[:-1]),
                            date_manager.date_list.size - 1 - train_step * int(glo.frequency[:-1]))
-        date_manager.set_date_with_index(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
+        print("最末起始日期：" + date_manager.date_list[
+            date_manager.date_list.size - 1 - train_step * int(glo.frequency[:-1]) * 30])
+        if train_model == "run":
+            # date_manager.set_date(datetime.strptime('2017-05-15 10:00:00', "%Y-%m-%d %H:%M:%S"))
+            date_manager.set_date_with_index(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
+        else:
+            date_manager.set_date_with_index(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
+        start_date = date_manager.get_date()
         glo.init_with_oristock(Env.get_stock_price(date_manager.get_date()))
 
         random_stock = [glo.stock_value[0]]
@@ -238,17 +246,19 @@ def run_model(train_model):
         current_stock_state = np.array(current_stock_state).reshape(1, stock_state_size, glo.count).tolist()
         current_agent_state = np.array(current_agent_state).reshape(1, agent_state_size).tolist()
         for t in range(train_step):
+            # 防止越界+最多训练/回测一年
+            if str(date_manager.get_date()) == '2019-08-09 09:31:00' or (
+                    date_manager.get_date() - start_date).year == 1:
+                break
             # 设置action噪声，增强对环境的探索能力
             a_noise = 0
             if train_model == "train" or train_model == "both":
                 a_noise = random.uniform(-epsilon, epsilon)
                 # 预防除以0或epsilon=0的情况
-                epsilon = epsilon * math.log(train_times - episode*t, train_times) + 0.00000001
+                epsilon = epsilon - epsilon / train_times + 0.00000001
             # 假设本轮时间极短，股价不变，本轮内所有股价都从这里获取
             glo.price = Env.get_stock_price(date_manager.get_date())
-            stock_price_list.append(glo.price)
             candle_list.append(Env.get_single_stock_state(date=date_manager.get_date()))
-            time_list.append(str(date_manager.get_date()))
             print("第" + str(episode + 1) + "轮训练")
             print("     第" + str(t + 1) + "步训练")
             print("日期:" + str(date_manager.get_date()))
@@ -267,7 +277,11 @@ def run_model(train_model):
             # 不存在卖出过多
             # 执行动作并获取状态
             print("执行动作" + str(action) + "并获取状态")
-            next_stock_state, next_agent_state, reward = execute_action(action)
+            next_stock_state, next_agent_state, reward, next_date, next_index, quant = execute_action(action)
+            if next_date.day != date_manager.get_date().day:
+                time_list.append(str(date_manager.get_date()))
+                amount_list.append(glo.get_stock_amount())
+                stock_price_list.append(glo.price)
             step_reward = reward
             print("reward:" + str(reward))
             print("money:" + str(glo.money))
@@ -275,7 +289,6 @@ def run_model(train_model):
             print("stock_value:" + str(glo.get_stock_total_value(glo.price)))
             print("stock:" + str(glo.stock_value))
             print("stock_amount:" + str(glo.get_stock_amount()))
-            amount_list.append(glo.get_stock_amount())
             # 生成经验前预处理
             next_stock_state = np.array(next_stock_state).reshape(1, stock_state_size, glo.count).tolist()
             next_agent_state = np.array(next_agent_state).reshape(1, agent_state_size).tolist()
@@ -300,7 +313,7 @@ def run_model(train_model):
                 print("开始训练")
                 step_loss = main_critic_net.train_on_batch([stock_state_, agent_state_, action_], [yi])
                 a_for_grad = main_actor_net.predict([stock_state_, agent_state_])
-
+                print("loss:" + str(step_loss))
                 grads = critic.gradients(stock_state_, agent_state_, a_for_grad)
                 # print("梯度:"+str(grads))
                 actor.train(stock_state_, agent_state_, grads)
@@ -321,29 +334,30 @@ def run_model(train_model):
                     }, auto_open=False, filename='episode_reward.html')
 
             if train_model == "run" or train_model == "both":
-                # 画出回测图
-                # 现在持有的股票价值+现在的资金
-                profit_list.append(
-                    (glo.get_stock_total_value(glo.price) + glo.money - glo.ori_money - glo.ori_value) / (
-                            glo.ori_value + glo.ori_money))
-                # 最开始持有的半仓股票的价值+最开始持有的资金
-                reference_list.append(
-                    (glo.stock_value[0][1] * glo.price * 100 + glo.ori_money - glo.ori_money - glo.ori_value) / (
-                            glo.ori_value + glo.ori_money))
-                temp = glo.stock_value[len(glo.stock_value) - 1]
-                quant_list.append(temp[1])
-                # 随机操作对照组
-                random_action = random.uniform(-1, 1)
-                random_quant = 0
-                if random_action > 0:
-                    random_quant = int(random_action * random_money / (100 * glo.price))
-                elif random_action < 0:
-                    random_quant = int(random_action * random_amount)
-                random_amount += random_quant
-                random_stock.append([glo.price, random_quant])
-                random_money -= glo.price * 100 * random_quant
-                random_list.append((glo.price * 100 * random_amount + random_money - glo.ori_money - glo.ori_value) / (
-                        glo.ori_money + glo.ori_value))
+                if next_date.day != date_manager.get_date().day:
+                    # 画出回测图
+                    # 现在持有的股票价值+现在的资金
+                    profit_list.append(
+                        (glo.get_stock_total_value(glo.price) + glo.money - glo.ori_money - glo.ori_value) / (
+                                glo.ori_value + glo.ori_money))
+                    # 最开始持有的半仓股票的价值+最开始持有的资金
+                    reference_list.append(
+                        (glo.stock_value[0][1] * glo.price * 100 + glo.ori_money - glo.ori_money - glo.ori_value) / (
+                                glo.ori_value + glo.ori_money))
+                    quant_list.append(quant)
+                    # 随机操作对照组
+                    random_action = random.uniform(-1, 1)
+                    random_quant = 0
+                    if random_action > 0:
+                        random_quant = int(random_action * random_money / (100 * glo.price))
+                    elif random_action < 0:
+                        random_quant = int(random_action * random_amount)
+                    random_amount += random_quant
+                    random_stock.append([glo.price, random_quant])
+                    random_money -= glo.price * 100 * random_quant
+                    random_list.append(
+                        (glo.price * 100 * random_amount + random_money - glo.ori_money - glo.ori_value) / (
+                                glo.ori_money + glo.ori_value))
                 f = train_step / 10
                 # 训练+绘制回测图模式下调低绘制频率
                 path = "sim.html"
@@ -373,14 +387,14 @@ def run_model(train_model):
                                                mode='lines',
                                                xaxis='x',
                                                yaxis='y2',
-                                               opacity=0.9)
+                                               opacity=1)
                     trade_bar = go.Bar(x=time_list,
                                        y=quant_list,
                                        name='交易量（手）',
                                        marker_color='#000099',
                                        xaxis='x',
                                        yaxis='y3',
-                                       opacity=0.9)
+                                       opacity=0.3)
                     amount_scatter = go.Scatter(x=time_list,
                                                 y=amount_list,
                                                 name='持股数量（手）',
@@ -429,7 +443,7 @@ def run_model(train_model):
             current_stock_state = next_stock_state
             current_agent_state = next_agent_state
             # 更新date
-            date_manager.next_date()
+            date_manager.set_date_with_index(next_date, next_index)
             print(
                 "此时刻全部卖出可净收入：" + str(glo.get_stock_total_value(glo.price) + glo.money - glo.ori_money - glo.ori_value))
             print("----------------------------")

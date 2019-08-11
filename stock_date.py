@@ -9,7 +9,7 @@ class StockDate:
     def __init__(self):
         # np[str]
         self.date_list = np.array(
-            pd.read_csv('Data/'+glo.stock_code.replace(".", "_") + ".csv")['Unnamed: 0'])
+            pd.read_csv('Data/' + glo.stock_code.replace(".", "_") + ".csv")['Unnamed: 0'])
         # datetime
         self.date = datetime.strptime(self.date_list[0], "%Y-%m-%d %H:%M:%S")
         self.index = 0
@@ -29,6 +29,13 @@ class StockDate:
         self.index += frequency
         return self.date
 
+    def next_day(self):
+        day = self.date.day
+        # 如果日期没有变更则next_date
+        while self.date.day == day:
+            self.next_date()
+        return self.date
+
     def get_date(self):
         return self.date
 
@@ -39,3 +46,6 @@ class StockDate:
         elif datetime.strptime(self.date_list[mid], "%Y-%m-%d %H:%M:%S").__lt__(self.date):
             return self.find_index(mid + 1, end)
         return mid
+
+    def get_index(self):
+        return self.index

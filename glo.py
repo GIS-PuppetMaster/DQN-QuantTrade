@@ -1,10 +1,10 @@
 count = 32
-stock_code = "601318.XSHG"
+stock_code = '601318.XSHG'
 money = pow(10, 7)
 ori_money = money
 # [[股价,股数]]
 stock_value = []
-frequency = '10m'
+frequency = '1m'
 price = 0
 ori_value = 0
 
@@ -26,7 +26,7 @@ def __init__():
     ori_money = money
     # [[股价,股数]]
     stock_value = []
-    frequency = '10m'
+    frequency = '1m'
     price = 0
 
 

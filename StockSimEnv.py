@@ -107,20 +107,29 @@ def trade(stock, action, date):
             quant = int(action_0 * amount)
             if quant == 0 and action_0 != 0:
                 flag = True
+
     price = glo.price
     # 钱数-=每股价格*100*交易手数
     money = glo.money - price * 100 * quant
-    # [股价,手数]
-    glo.stock_value.append([price, quant])
+    if quant != 0:
+        # [股价,手数]
+        glo.stock_value.append([price, quant])
     glo.money = money
     print("实际交易量：" + str(quant))
     print("实际交易金额（收入为正卖出为负）：" + str(-price * 100 * quant))
-    next_date = gdate.next_date()
+    # 如果没交易则下一时刻
+    if quant == 0:
+        next_date = gdate.next_date()
+    # 如果交易了则跳到下一天
+    else:
+        next_date = gdate.next_day()
+
     if flag:
-        reward = -abs(action[0])
+        reward=-abs(action_0)
     else:
         reward = (glo.money + glo.get_stock_total_value(
             get_stock_price(next_date)) - glo.ori_money - glo.ori_value) / (glo.ori_money + glo.ori_value)
     # 返回glo.frequency之后的状态
+    next_index = gdate.get_index()
     state = get_state(date=next_date)
-    return state[0], state[1], reward
+    return state[0], state[1], reward, next_date, next_index, quant
