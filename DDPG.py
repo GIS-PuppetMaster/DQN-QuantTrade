@@ -248,7 +248,7 @@ def run_model(train_model):
         for t in range(train_step):
             # 防止越界+最多训练/回测一年
             if str(date_manager.get_date()) == '2019-08-09 09:31:00' or (
-                    date_manager.get_date() - start_date).year == 1:
+                    date_manager.get_date() - start_date).days >= 365:
                 break
             # 设置action噪声，增强对环境的探索能力
             a_noise = 0
@@ -323,7 +323,7 @@ def run_model(train_model):
                 episode_reward_list.append(step_reward)
                 episode_loss_list.append(step_loss)
                 # 每轮结束时画出训练结果图
-                if t == train_step - 1:
+                if t == train_step - 1 or (date_manager.get_date() - start_date).days >= 365:
                     py.offline.plot({
                         "data": [go.Scatter(x=[i for i in range(len(episode_loss_list))], y=episode_loss_list)],
                         "layout": go.Layout(title="episode_loss", xaxis={'title': '步数'}, yaxis={'title': 'loss'})
@@ -364,7 +364,7 @@ def run_model(train_model):
                 if train_model == "both":
                     f = train_step / 10
                     path = "sim_res/sim_" + str(episode + 1) + ".html"
-                if (t + 1) % f == 0 and t != 0:
+                if ((t + 1) % f == 0 and t != 0) or (date_manager.get_date() - start_date).days % 50 == 0:
                     random_scatter = go.Scatter(x=time_list,
                                                 y=random_list,
                                                 name='随机策略',
