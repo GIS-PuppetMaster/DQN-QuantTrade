@@ -125,7 +125,7 @@ def trade(stock, action, date):
         next_date = gdate.next_day()
 
     if flag:
-        reward=-abs(action_0)
+        reward = -abs(action_0)
     else:
         reward = (glo.money + glo.get_stock_total_value(
             get_stock_price(next_date)) - glo.ori_money - glo.ori_value) / (glo.ori_money + glo.ori_value)
