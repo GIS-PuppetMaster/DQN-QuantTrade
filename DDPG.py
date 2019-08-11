@@ -178,6 +178,8 @@ def run_model(train_model):
     global epsilon
     global experience_pool
     global date_manager
+    global train_times
+    global train_step
     actor = ActorNetwork(sess, stock_state_size, agent_state_size, action_size, tau, 0.00001)
     critic = CriticNetwork(sess, stock_state_size, agent_state_size, action_size, tau, 0.000001)
     main_actor_net = actor.model
@@ -229,6 +231,7 @@ def run_model(train_model):
                            date_manager.date_list.size - 1 - train_step * int(glo.frequency[:-1]))
         print("最末起始日期：" + date_manager.date_list[
             date_manager.date_list.size - 1 - train_step * int(glo.frequency[:-1]) * 30])
+        print("本次模拟起始日期："+str(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S")))
         if train_model == "run":
             # date_manager.set_date(datetime.strptime('2017-05-15 10:00:00', "%Y-%m-%d %H:%M:%S"))
             date_manager.set_date_with_index(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
@@ -360,7 +363,7 @@ def run_model(train_model):
                                 glo.ori_money + glo.ori_value))
                 f = train_step / 10
                 # 训练+绘制回测图模式下调低绘制频率
-                path = "sim.html"
+                path = "回测/sim" + str(episode + 1) + ".html"
                 if train_model == "both":
                     f = train_step / 10
                     path = "sim_res/sim_" + str(episode + 1) + ".html"
