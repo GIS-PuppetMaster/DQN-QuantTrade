@@ -1,6 +1,6 @@
 count = 32
-stock_code = '600519.XSHG'
-money = 1*pow(10, 4)
+stock_code = "000517.XSHE"
+money = 1*pow(10, 5)
 ori_money = money
 # [[股价,股数]]
 stock_value = []
@@ -21,8 +21,8 @@ def __init__():
     global ori_value
     count = 32
     ori_value = 0
-    stock_code = "000938.XSHE"
-    money = 2*pow(10, 4)
+    stock_code = "000517.XSHE"
+    money = pow(10, 5)
     ori_money = money
     # [[股价,股数]]
     stock_value = []
@@ -46,12 +46,13 @@ def get_stock_amount():
     return amount
 
 
-def init_with_oristock(price):
+def init_with_oristock(price,quant):
     global stock_value
     global ori_value
-    # 初始化时默认持股
-    amount = int(money / (100 * price))
-    # 实际买多少手
-    quant = int(1 * amount)
+    if quant==-1:
+        # 初始化时默认持股
+        amount = int(money / (100 * price))
+        # 实际买多少手
+        quant = int(1 * amount)
     stock_value = [[price, quant]]
     ori_value = price * quant * 100

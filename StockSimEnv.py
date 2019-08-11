@@ -110,7 +110,7 @@ def trade(stock, action, date):
 
     price = glo.price
     # 钱数-=每股价格*100*交易手数
-    money = glo.money - price * 100 * quant
+    money = glo.money - price * 100 * quant - abs(price*100*quant*1.25/1000)
     if quant != 0:
         # [股价,手数]
         glo.stock_value.append([price, quant])

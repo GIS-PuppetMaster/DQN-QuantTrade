@@ -7,6 +7,7 @@ import pandas as pd
 
 class StockDate:
     def __init__(self):
+        glo.__init__()
         # np[str]
         self.date_list = np.array(
             pd.read_csv('Data/' + glo.stock_code.replace(".", "_") + ".csv")['Unnamed: 0'])

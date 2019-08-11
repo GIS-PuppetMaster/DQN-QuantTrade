@@ -6,7 +6,7 @@ import json
 import glo
 
 auth("13074581737", "trustno1")
-
+glo.__init__()
 raw = get_price(glo.stock_code, start_date=datetime(2007, 1, 1, 0, 0, 0).strftime("%Y-%m-%d %H:%M:%S"),
                 end_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), frequency="1m", skip_paused=True)
 raw.to_csv('Data/'+glo.stock_code.replace(".", "_") + ".csv")

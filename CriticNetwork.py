@@ -10,6 +10,7 @@ import glo
 
 class CriticNetwork(object):
     def __init__(self, sess, stock_state_size, agent_state_size, action_size, TAU, LEARNING_RATE):
+        glo.__init__()
         self.sess = sess
         self.stock_state_size = stock_state_size
         self.agent_state_size = agent_state_size

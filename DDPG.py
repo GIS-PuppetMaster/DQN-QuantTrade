@@ -46,6 +46,8 @@ target_critic_net = None
 experience_cursor = 0
 date_manager = StockDate()
 
+quant_init= 50
+
 
 # auth("13074581737", "trustno1")
 
@@ -233,12 +235,12 @@ def run_model(train_model):
             date_manager.date_list.size - 1 - train_step * int(glo.frequency[:-1]) * 30])
         print("本次模拟起始日期："+str(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S")))
         if train_model == "run":
-            # date_manager.set_date(datetime.strptime('2017-05-15 10:00:00', "%Y-%m-%d %H:%M:%S"))
-            date_manager.set_date_with_index(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
+            date_manager.set_date(datetime.strptime('2019-01-14 10:00:00', "%Y-%m-%d %H:%M:%S"))
+            # date_manager.set_date_with_index(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
         else:
             date_manager.set_date_with_index(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
         start_date = date_manager.get_date()
-        glo.init_with_oristock(Env.get_stock_price(date_manager.get_date()))
+        glo.init_with_oristock(Env.get_stock_price(date_manager.get_date()),quant_init)
 
         random_stock = [glo.stock_value[0]]
         random_ori_money = glo.ori_money
@@ -357,7 +359,7 @@ def run_model(train_model):
                         random_quant = int(random_action * random_amount)
                     random_amount += random_quant
                     random_stock.append([glo.price, random_quant])
-                    random_money -= glo.price * 100 * random_quant
+                    random_money -= glo.price * 100 * random_quant + abs(glo.price*100*quant*1.25/1000)
                     random_list.append(
                         (glo.price * 100 * random_amount + random_money - glo.ori_money - glo.ori_value) / (
                                 glo.ori_money + glo.ori_value))
