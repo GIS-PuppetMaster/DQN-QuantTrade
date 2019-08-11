@@ -227,7 +227,6 @@ def run_model(train_model):
         stock_price_list = []
         candle_list = []
         amount_list = []
-
         # 初始化状态
         t = random.randint(int(glo.frequency[:-1]),
                            date_manager.date_list.size - 1 - train_step * int(glo.frequency[:-1]))
@@ -235,8 +234,8 @@ def run_model(train_model):
             date_manager.date_list.size - 1 - train_step * int(glo.frequency[:-1]) * 30])
         print("本次模拟起始日期：" + str(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S")))
         if train_model == "run":
-            date_manager.set_date(datetime.strptime('2019-01-14 10:00:00', "%Y-%m-%d %H:%M:%S"))
-            # date_manager.set_date_with_index(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
+            # date_manager.set_date(datetime.strptime('2019-01-14 10:00:00', "%Y-%m-%d %H:%M:%S"))
+            date_manager.set_date_with_index(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
         else:
             date_manager.set_date_with_index(datetime.strptime(date_manager.date_list[t], "%Y-%m-%d %H:%M:%S"), t)
         start_date = date_manager.get_date()
@@ -457,6 +456,7 @@ def run_model(train_model):
                 save_weights()
         print("-------------------------------------------------------------------------------------------")
         print("total_reward:" + str(step_reward))
+        save_model()
         if train_model == "train" or train_model == "both":
             main_actor_net.save_weights('sim_res_weights/' + str(episode + 1) + '_main_actor_weights.h5',
                                         overwrite=True)
@@ -484,6 +484,14 @@ def save_experience_pool():
     with open("Data/experience_pool.json", "w", encoding='UTF-8') as f:
         json.dump(experience_pool, f, default=lambda obj: obj.__dict__)
     print("经验存储完成")
+
+
+def save_model():
+    main_actor_net.save('main_actor.h5', overwrite=True, include_optimizer=True)
+    target_actor_net.save('target_actor.h5', overwrite=True, include_optimizer=True)
+    main_critic_net.save('main_critic.h5', overwrite=True, include_optimizer=True)
+    target_critic_net.save('target_critic.h5', overwrite=True, include_optimizer=True)
+    print("模型存储完成")
 
 
 run_model(input("请输入运行模式：run\\train\\both\n"))
